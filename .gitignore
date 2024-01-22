@@ -1,0 +1,6 @@
+venv
+pdf_env
+*.xml
+*.xlsx
+*.csv
+output
