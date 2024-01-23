@@ -117,7 +117,7 @@ class MyApp(tk.Tk):
             text="Iniciar exportação",
             width=15,
             command=lambda: self.run_in_thread(self.start_export),
-            #   state=tk.DISABLED
+            state=tk.DISABLED
         )
 
         self.label_info = tk.Label(
@@ -174,7 +174,13 @@ class MyApp(tk.Tk):
         help_menu = Menu(menubar, tearoff=0)
 
         # help_menu.add_command(label='Welcome')
+        help_menu.add_command(label="Abrir logs...", command=self.abrir_logs)
+        help_menu.add_command(label="Limpar logs...", command=self.limpar_logs)
+
+        help_menu.add_separator()
         help_menu.add_command(label="Sobre...", command=self.sobre)
+
+        
 
         # add the Help menu to the menubar
         menubar.add_cascade(label="Ajuda", menu=help_menu)
@@ -208,7 +214,14 @@ class MyApp(tk.Tk):
 
             self.pb.stop()
             self.pb.grid_forget()
+    def abrir_logs(self):
+        # Abrir o arquivo de logs.txt
+        os.startfile("logs.txt")
 
+    def limpar_logs(self):
+        with open("logs.txt", "w", encoding="utf-8") as file:
+            file.write("")
+        messagebox.showinfo("Logs", "Logs limpos com sucesso", parent=self.root)    
     def sobre(self):
         messagebox.showinfo(
             "Sobre",
@@ -242,6 +255,17 @@ class MyApp(tk.Tk):
         self.button_2299["state"] = tk.NORMAL
         self.button_5001["state"] = tk.NORMAL
         self.button_5011["state"] = tk.NORMAL
+        #self.button_start["state"] = tk.NORMAL
+
+    def disable_buttons(self):
+        # Habilitar os botões após o upload dos arquivos
+        self.button_1010["state"] = tk.DISABLED
+        self.button_1200["state"] = tk.DISABLED
+        self.button_2299["state"] = tk.DISABLED
+        self.button_5001["state"] = tk.DISABLED
+        self.button_5011["state"] = tk.DISABLED
+        self.button_start["state"] = tk.DISABLED
+
 
     def salvar_logs(self, logs):
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -262,16 +286,12 @@ class MyApp(tk.Tk):
 
         try:
             # Função para o botão "Upload dos Arquivos ZIP"
-            file_paths = filedialog.askopenfilenames(
-                title="Selecione um arquivo ZIP", filetypes=[("Arquivos ZIP", "*.zip")]
-            )
+            file_paths = filedialog.askopenfilenames( title="Selecione um arquivo ZIP", filetypes=[("Arquivos ZIP", "*.zip")])
             desired_files = ["1010.xml", "1200.xml", "2299.xml", "5001.xml", "5011.xml"]
 
             for file_path in file_paths:
-                self.label_info[
-                    "text"
-                ] = f"Arquivo selecionado: \n{file_path}\nAguarde..."
-                # Criar uma pasta com o nome do arquivo (sem extensão)
+                self.label_info["text"] = f"Arquivo selecionado: \n{file_path}\nAguarde..."
+                # Criar uma pasta com o nome da empresa
                 output_folder = os.path.join(
                     os.path.join("output", file_path.split("/")[-1].split(".")[0])
                 )
@@ -317,13 +337,13 @@ class MyApp(tk.Tk):
 
     def extract_number(self, number):
         tempo_init = time.time()
-
         self.pb.grid(
             row=5,
             column=0,
             columnspan=4,
             pady=15,
         )
+        self.disable_buttons()
 
         self.pb.start()
         total = 0
@@ -397,6 +417,8 @@ class MyApp(tk.Tk):
         self.salvar_logs(
             f"Extração concluída para os arquivos {number}. Total de arquivos processados: {total}"
         )
+        self.enable_buttons()
+        self.button_start["state"] = tk.NORMAL
         self.pb.stop()
         self.pb.grid_forget()
 
@@ -411,8 +433,11 @@ class MyApp(tk.Tk):
             for arquivo in arquivos:
                 print(f"Deletandoo o arquivo {arquivo}")
                 self.label_info["text"] = f"Deletando o arquivo {arquivo}"
-                self.salvar_logs(f"Deletando o arquivo {arquivo}")
+                self.salvar_logs(f"Arquivo {arquivo} deletado!")
                 os.remove(os.path.join(pasta, arquivo))
+                self.label_info["text"] =""
+
+
 
     def start_export(self):
         self.pb.grid(
@@ -425,6 +450,12 @@ class MyApp(tk.Tk):
         self.pb.start()
         tempo_init = time.time()
         doc_lists = {"1010": [], "1200": [], "2299": [], "5001": [], "5011": []}
+        is_output = self.check_output()
+        if is_output[0] == False:
+            return
+        else:
+            self.output_folder = is_output[1]
+            print(self.output_folder)
 
         for pasta in self.output_folder:
             arquivos = [arquivo for arquivo in os.listdir(pasta)]
@@ -455,9 +486,12 @@ class MyApp(tk.Tk):
             self.salvar_logs(
                 f"Extração concluída para o xml {doc_type},\n quantidade de arquivos processados: \n{len(file_list)}. Tempo de execução: {tempo_etapa}"
             )
+            self.label_info["text"] = f"Extração concluída para o xml {doc_type}, \nTempo de execução: {tempo_etapa}"
 
             # print(tempo_etapa)
         print(f"Tempo total de execução: {tempo_etapa}")
+        self.label_info["text"] = f"Extração concluída! Tempo total de execução: {tempo_etapa}"
+
         self.pb.stop()
         self.pb.grid_forget()
 
