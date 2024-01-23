@@ -5,6 +5,7 @@ import json
 import pyperclip
 from datetime import datetime
 import time
+from formats import formatar_cnpj, formatar_string_para__cpf
 
 def extrair_1010(xml_content):
     new_dict = {}
@@ -267,7 +268,7 @@ def extrair_1200(xml_content):
     new_json["RaizCNPJ"] = raiz
     new_json["IdentificadorEvento"] = evtRemun
     new_json["NumRecibo"] = Recibo
-    new_json["CPF"] = cpfTrab
+    new_json["CPF"] = formatar_string_para__cpf(cpfTrab)
     new_json["DataDesligamento"] = ""
     new_json["TipoEvento"] = "0"
     new_json["DataGeracaoEvento"] = DataGeracaoEvento

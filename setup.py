@@ -1,38 +1,18 @@
+#setup.py
 from cx_Freeze import setup, Executable
-import sys
 
-base = None
-
-if sys.platform == 'win32':
-    base = "Win32GUI"
-
-
-executables = [Executable(script="main.py", 
-                          base=base,                         
-                          copyright="Copyright (C) 2024 BMS")]
-
-
-build_exe_options = {
-    "packages": 
-        ["csv", "time", "os", "glob", "pathlib"], 
-    "includes": 
-        ["tkinter"]
-    
-  }
-
-
-bdist_msi_options = {
-        "add_to_path": False,
-        "target_name": "Xlsx Exporter"
-    }
 
 setup(
-    name = "Xlsx Exporter",
-    options = {
-        "build_exe": build_exe_options,
-        "bdist_msi": bdist_msi_options 
-        },
-    version = "1.5",
-    description = 'Xlsx Exporter',
-    executables = executables
-)
+    name = "Conversor de eventos para excel",
+    version = "1.0.0",
+    options = {"build_exe": {
+        'packages': ["os","sys","ctypes","win32con","tkinter","PIL","base64","threading","io","tkinter","pandas"],
+        'include_files': ["logo.png","favicon.ico"],
+        'include_msvcr': True,
+    }},
+    executables = [Executable("main.py",base="Win32GUI",
+                              icon="favicon.ico",
+                              copyright="Copyright (C) 2022 BMS",
+                            
+                              )]
+    )

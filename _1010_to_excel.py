@@ -36,7 +36,6 @@ def processar_xml(xml_path):
     with open(xml_path, 'r', encoding='utf-8') as file:
         xml_content = file.read()
     json_content = extrair_1010(xml_content)
-    print(json_content)
     df = json_to_dataframe(json_content)
     return df
 

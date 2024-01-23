@@ -5,3 +5,4 @@ pdf_env
 *.csv
 output
 __pycache__
+logs.txt

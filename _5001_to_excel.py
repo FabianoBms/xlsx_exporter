@@ -28,7 +28,6 @@ def processar_xml(xml_path):
         df = to_extrair_5001(xml_content)          
     except Exception as e:
         logs = f"Erro ao processar o arquivo {xml_path}: {e} - {xml_path}"
-        print(logs)
         salvar_logs(logs)
         df = pd.DataFrame()
     
