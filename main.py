@@ -431,7 +431,7 @@ class MyApp(tk.Tk):
                 arquivo for arquivo in os.listdir(pasta) if arquivo.endswith(".xlsx")
             ]
             for arquivo in arquivos:
-                print(f"Deletandoo o arquivo {arquivo}")
+                print(f"Deletando o arquivo {arquivo}")
                 self.label_info["text"] = f"Deletando o arquivo {arquivo}"
                 self.salvar_logs(f"Arquivo {arquivo} deletado!")
                 os.remove(os.path.join(pasta, arquivo))
@@ -449,6 +449,7 @@ class MyApp(tk.Tk):
             self.run_in_thread(shutil.rmtree(pasta))
             print(f"pasta {pasta} deletada")
             self.label_info["text"] = f"pasta {pasta} deletada"
+        self.disable_buttons()
 
     def start_export(self):
         self.pb.grid(
