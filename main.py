@@ -62,6 +62,7 @@ class MyApp(tk.Tk):
         # Criar um frame centralizado
         self.frame = tk.Frame(self.root, width=650, height=440, bg="#ebe5e4")
         self.frame.place(relx=0.5, rely=0.6, anchor=tk.CENTER)
+        self.frame.bind('<Double-1>',self.clear_label)
    
 
         # Criar os componentes dentro do frame
@@ -158,11 +159,17 @@ class MyApp(tk.Tk):
             label="Abrir pasta output",
             command=lambda: self.run_in_thread(self.abrir_pasta_output),
         )
+        file_menu.add_separator()
 
         file_menu.add_command(
-            label="Apagar output",
+            label="Apagar arquivos gerados",
             command=lambda: self.run_in_thread(self.apagar_arquivos_gerados),
         )
+        file_menu.add_command(
+            label="Apagar output",
+            command=lambda: self.run_in_thread(self.apagar_output),
+        )
+
         file_menu.add_separator()
 
         # add Exit menu item
@@ -197,23 +204,24 @@ class MyApp(tk.Tk):
             self.pb.start()
 
             if answer == False:
-                print(
-                    f'Deletando pastas em output: {len(is_output[1])} {"pasta" if len(is_output[1]) == 1 else "pastas"}'
-                )
-                self.label_info[
-                    "text"
-                ] = f'Deletando pastas em output: {len(is_output[1])} {"pasta" if len(is_output[1]) == 1 else "pastas"}'
-                for pasta in is_output[1]:
-                    self.run_in_thread(shutil.rmtree(pasta))
-                    print(f"pasta {pasta} deletada")
-                    self.label_info["text"] = f"pasta {pasta} deletada"
+                self.apagar_arquivos_gerados()
+
 
             elif answer == True:
                 self.output_folder = is_output[1]
                 self.enable_buttons()
-
+                self.button_start["state"] = tk.NORMAL
+                quebra = "\n"
+                self.label_info["text"] = f"Pastas recuperadas: {'--> '.join(str(self.output_folder[x]+quebra) for x in range(len(self.output_folder)))}"
+            
             self.pb.stop()
             self.pb.grid_forget()
+    
+    
+    def clear_label(self, event):
+
+        self.label_info["text"] = ""
+    
     def abrir_logs(self):
         # Abrir o arquivo de logs.txt
         os.startfile("logs.txt")
@@ -222,15 +230,16 @@ class MyApp(tk.Tk):
         with open("logs.txt", "w", encoding="utf-8") as file:
             file.write("")
         messagebox.showinfo("Logs", "Logs limpos com sucesso", parent=self.root)    
+    
     def sobre(self):
         messagebox.showinfo(
-            "Sobre",
-            "XLSX Exporter\n\nVersão: 1.0",
+            "BMS Consultoria Tributária",
+            "XLSX Exporter\n\nVersão: 1.0 \n Conversor de eventos para excel\n Copyright (C) 2024 BMS",
             parent=self.root,
             icon="info",
-            type="ok",
-            
+            type="ok",            
         )
+    
     def abrir_pasta_output(self):
         if os.path.exists("output"):
             os.startfile("output")
@@ -266,40 +275,37 @@ class MyApp(tk.Tk):
         self.button_5011["state"] = tk.DISABLED
         self.button_start["state"] = tk.DISABLED
 
-
     def salvar_logs(self, logs):
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         with open("logs.txt", "a", encoding="utf-8") as file:
             file.write(timestamp + " - " + logs + "\n")
 
-    def select_bt(self):
-        print(self)
-
     def extract(self):
-        self.pb.grid(
-            row=5,
-            column=0,
-            columnspan=4,
-            pady=15,
-        )
-        self.pb.start()
-
+ 
         try:
-            # Função para o botão "Upload dos Arquivos ZIP"
+            # Função para o botão "Upload dos Arquivos ZIP"            
             file_paths = filedialog.askopenfilenames( title="Selecione um arquivo ZIP", filetypes=[("Arquivos ZIP", "*.zip")])
             desired_files = ["1010.xml", "1200.xml", "2299.xml", "5001.xml", "5011.xml"]
-
+            if len(file_paths) == 0:
+                self.label_info["text"] = "Nenhum arquivo selecionado"
+                self.pb.forget()
+                return
+            self.pb.grid(
+                row=5,
+                column=0,
+                columnspan=4,
+                pady=15,
+            )
+                
+            self.pb.start()
             for file_path in file_paths:
                 self.label_info["text"] = f"Arquivo selecionado: \n{file_path}\nAguarde..."
                 # Criar uma pasta com o nome da empresa
-                output_folder = os.path.join(
-                    os.path.join("output", file_path.split("/")[-1].split(".")[0])
-                )
+                output_folder = os.path.join( os.path.join("output", file_path.split("/")[-1].split(".")[0]))
                 os.makedirs(output_folder, exist_ok=True)
 
                 self.output_folder.append(output_folder)
                 # print(f"Output_folder: {output_folder}")
-
                 # Extrair apenas os arquivos desejados
                 with zipfile.ZipFile(file_path, "r") as zip_ref:
                     for file_info in zip_ref.infolist():
@@ -322,6 +328,7 @@ class MyApp(tk.Tk):
 
         self.enable_buttons()
         self.label_info["text"] = "Extração concluída!\nVocê pode exportar os arquivos!"
+        self.button_start["state"] = tk.NORMAL
         self.pb.stop()
         self.pb.grid_forget()
 
@@ -393,27 +400,20 @@ class MyApp(tk.Tk):
                     df_final.to_excel(
                         os.path.join(_folder, f"_{number}.xlsx"), index=False
                     )
-                    self.label_info[
-                        "text"
-                    ] = f"Extração concluída para o xml {number}.\n Quantidade de arquivos processados: {cont}"
-                    print(
-                        f"Extração concluída para o xml {number}.\n Quantidade de arquivos processados: {cont}"
-                    )
+                    
                     total = total + cont
                     tempo_minutos = (time.time() - tempo_init) / 60
-                    print(f"Tempo de execução: {tempo_minutos:.2f} minutos")
+                    tempo = f"Tempo de execução: {tempo_minutos:.2f} minutos"
+                    self.label_info["text"] = f"Extração concluída para o xml {number}.\n Quantidade de arquivos processados: {cont if cont > 0 else len (os.listdir(os.path.join(_folder, str(number))))}\n {tempo}"
+                   
                 except FileNotFoundError as e:
-                    self.label_info[
-                        "text"
-                    ] = f"Extração falhou para o xml {number}.\n {e}"
+                    self.label_info["text"] = f"Extração falhou para o xml {number}.\n {e}"
                     print(f"Extração falhou para o xml {number}.\n {e}")
                     self.salvar_logs(f"Extração falhou para o xml {number}.\n {e}")
                     pass
-
-        self.label_info[
-            "text"
-        ] = f"Extração concluída.\n Total de arquivos processados: {total}"
-        print(f"Extração concluída.\n Total de arquivos processados: {total}")
+        if total > 0 :                
+            self.label_info[ "text" ] = f"Extração concluída para os arquivos {number}.\n Total de arquivos processados: {total}"
+        
         self.salvar_logs(
             f"Extração concluída para os arquivos {number}. Total de arquivos processados: {total}"
         )
@@ -436,8 +436,19 @@ class MyApp(tk.Tk):
                 self.salvar_logs(f"Arquivo {arquivo} deletado!")
                 os.remove(os.path.join(pasta, arquivo))
                 self.label_info["text"] =""
-
-
+    
+    def apagar_output(self):
+        is_output = self.check_output()
+        print(
+            f'Deletando pastas em output: {len(is_output[1])} {"pasta" if len(is_output[1]) == 1 else "pastas"}'
+        )
+        self.label_info[
+            "text"
+        ] = f'Deletando pastas em output: {len(is_output[1])} {"pasta" if len(is_output[1]) == 1 else "pastas"}'
+        for pasta in is_output[1]:
+            self.run_in_thread(shutil.rmtree(pasta))
+            print(f"pasta {pasta} deletada")
+            self.label_info["text"] = f"pasta {pasta} deletada"
 
     def start_export(self):
         self.pb.grid(
@@ -480,12 +491,8 @@ class MyApp(tk.Tk):
             # print( doc_lists.items())
             self.run_in_thread(self.juntar_xmls(doc_type, file_list, pasta))
             tempo_etapa = time.time() - tempo_init
-            print(
-                f"Extração concluída para o xml {doc_type}, quantidade de arquivos processados: {len(file_list)}"
-            )
-            self.salvar_logs(
-                f"Extração concluída para o xml {doc_type},\n quantidade de arquivos processados: \n{len(file_list)}. Tempo de execução: {tempo_etapa}"
-            )
+            print( f"Extração concluída para o xml {doc_type}, quantidade de arquivos processados: {len(file_list)}")
+            self.salvar_logs(f"Extração concluída para o xml {doc_type},\n quantidade de arquivos processados: \n{len(file_list)}. Tempo de execução: {tempo_etapa}")
             self.label_info["text"] = f"Extração concluída para o xml {doc_type}, \nTempo de execução: {tempo_etapa}"
 
             # print(tempo_etapa)
@@ -526,5 +533,7 @@ if __name__ == "__main__":
         app.root.mainloop()
     except KeyboardInterrupt as e:
         print("bye!")
+        app.root.destroy()
+    except Exception as e:
         app.salvar_logs(f"Bye! {e}")
         app.root.destroy()

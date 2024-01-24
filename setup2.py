@@ -25,7 +25,7 @@ setup(
             "main.py",
             base="Win32GUI",
             icon="favicon.ico",
-            copyright="Copyright (C) 2022 BMS",  
+            copyright="Copyright (C) 2024 BMS",  
             shortcut_name = "Conversor de eventos para excel",   
             shortcut_dir="DesktopFolder",
         )
