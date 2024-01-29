@@ -23,10 +23,68 @@ from threading import Thread
 import shutil
 from datetime import datetime
 import pandas as pd
+from setup2 import get_version 
+
+class Relatorios:
+    def __init__(self, *args):
+        self.data_evento = datetime.now().strftime("%d/%m/%Y %H:%M:%S") 
+        self.nome_empresa = ""
+        self.CNPJ_empresa=""
+
+        self.tempo_1010 = int(0)
+        self.tempo_1200 = int(0)
+        self.tempo_2299 = int(0)
+        self.tempo_5011 = int(0)
+        self.tempo_5001 = int(0)
+        self.tempo_total = int(0)
+
+        self.tempo_extract = int(0)
+        self.tempo_export = int(0)
+        
+        self.quantidade_arquivos_1010=int(0)
+        self.quantidade_arquivos_1200=int(0)
+        self.quantidade_arquivos_2299=int(0)
+        self.quantidade_arquivos_5011=int(0)
+        self.quantidade_arquivos_5001=int(0)
+        self.quantidade_arquivos_total=int(0)
+
+    def get_tempo_total(self):
+        return self.tempo_total
+    
+    def tempo_parcial(self, number_xml):
+        if number_xml == 1010:
+            return self.tempo_1010
+        elif number_xml == 1200:
+            return self.tempo_1200
+        elif number_xml == 2299:
+            return self.tempo_2299
+        elif number_xml == 5011:
+            return self.tempo_5011
+        elif number_xml == 5001:
+            return self.tempo_5001
+        elif number_xml == "total":
+            return self.get_tempo_total()
+    def add_tempo(self, number_xml, tempo):
+        if number_xml == 1010:
+            self.tempo_1010 = tempo
+        elif number_xml == 1200:
+            self.tempo_1200 = tempo
+        elif number_xml == 2299:
+            self.tempo_2299 = tempo
+        elif number_xml == 5011:
+            self.tempo_5011 = tempo
+        elif number_xml == 5001:
+            self.tempo_5001 = tempo
+             
+
+
+        
+    
 
 
 class MyApp(tk.Tk):
     def __init__(self, root):
+        self.relatorios = Relatorios()
         self.root = root
         self.dataframes = []
         self.root.title("BMS Projetos - Xlsx Exporter")
@@ -40,11 +98,6 @@ class MyApp(tk.Tk):
 
         image_bytes = base64.b64decode(image_data)
         image = Image.open(BytesIO(image_bytes))
-
-        background_image = ImageTk.PhotoImage(image)
-
-        # Carregar a imagem do logotipo
-        # logo_image = Image.open(r"Logo_BMS.png")
         logo_image = image.resize((200, 160))
         self.logo_image = ImageTk.PhotoImage(logo_image)
 
@@ -70,6 +123,7 @@ class MyApp(tk.Tk):
         self.logo = tk.Label(
             self.frame, text="Xlsx Exporter", bg="#ebe5e4", font=("Arial", 20)
         )
+
         self.upload_button = tk.Button(
             self.frame,
             text="Upload dos Arquivos ZIP",
@@ -151,24 +205,13 @@ class MyApp(tk.Tk):
 
         # add menu items to the File menu
 
-        file_menu.add_command(
-            label="Importar zip...", command=lambda: self.run_in_thread(self.extract)
-        )
+        file_menu.add_command( label="Importar zip...", command=lambda: self.run_in_thread(self.extract) )
 
-        file_menu.add_command(
-            label="Abrir pasta output",
-            command=lambda: self.run_in_thread(self.abrir_pasta_output),
-        )
+        file_menu.add_command( label="Abrir pasta output",command=lambda: self.run_in_thread(self.abrir_pasta_output), )
         file_menu.add_separator()
 
-        file_menu.add_command(
-            label="Apagar arquivos gerados",
-            command=lambda: self.run_in_thread(self.apagar_arquivos_gerados),
-        )
-        file_menu.add_command(
-            label="Apagar output",
-            command=lambda: self.run_in_thread(self.apagar_output),
-        )
+        file_menu.add_command(label="Apagar arquivos gerados",command=lambda: self.run_in_thread(self.apagar_arquivos_gerados), )
+        file_menu.add_command( label="Apagar output",command=lambda: self.run_in_thread(self.apagar_output),)
 
         file_menu.add_separator()
 
@@ -195,16 +238,14 @@ class MyApp(tk.Tk):
         is_output = self.check_output()
         # print(is_output[0])
         if is_output[0] == True:
-            answer = messagebox.askyesno(
-                "Output",
-                f'Existem {len(is_output[1])} {"pasta" if len(is_output[1]) == 1 else "pastas"} em output: \n {is_output[1]}\nDeseja manter estes arquivos??',
+            answer = messagebox.askyesno("Output", f'Existem {len(is_output[1])} {"pasta" if len(is_output[1]) == 1 else "pastas"} em output: \n {is_output[1]}\nDeseja manter estes arquivos??',
             )
 
             self.pb.grid(row=5, column=0, columnspan=4, pady=15, padx=10)
             self.pb.start()
 
             if answer == False:
-                self.apagar_arquivos_gerados()
+                self.run_in_thread(self.apagar_output())
 
 
             elif answer == True:
@@ -216,7 +257,6 @@ class MyApp(tk.Tk):
             
             self.pb.stop()
             self.pb.grid_forget()
-    
     
     def clear_label(self, event):
 
@@ -232,9 +272,10 @@ class MyApp(tk.Tk):
         messagebox.showinfo("Logs", "Logs limpos com sucesso", parent=self.root)    
     
     def sobre(self):
+        versao = get_version()
         messagebox.showinfo(
             "BMS Consultoria Tributária",
-            "XLSX Exporter\n\nVersão: 1.0 \n Conversor de eventos para excel\n Copyright (C) 2024 BMS",
+            f"XLSX Exporter\n\nVersão: {versao} \n Conversor de eventos para excel\n Copyright (C) 2024 BMS",
             parent=self.root,
             icon="info",
             type="ok",            
@@ -354,6 +395,7 @@ class MyApp(tk.Tk):
 
         self.pb.start()
         total = 0
+        tempo = 0
         for _folder in self.output_folder:
             if f"_{number}.xlsx" in os.listdir(os.path.join(_folder)):                
                 print(f"Arquivo {number}.xlsx encontrado na pasta 'output'")
@@ -402,8 +444,16 @@ class MyApp(tk.Tk):
                     )
                     
                     total = total + cont
+                    # Calcula o tempo de execução em minutos
                     tempo_minutos = (time.time() - tempo_init) / 60
-                    tempo = f"Tempo de execução: {tempo_minutos:.2f} minutos"
+
+                    # Calcula os segundos restantes
+                    tempo_segundos = (time.time() - tempo_init) % 60
+
+                    # Formata a mensagem de tempo de execução
+                    tempo = f"Tempo de execução: {int(tempo_minutos)} minutos e {tempo_segundos:.2f} segundos"
+                    self.relatorios.add_tempo(number, tempo)
+
                     self.label_info["text"] = f"Extração concluída para o xml {number}.\n Quantidade de arquivos processados: {cont if cont > 0 else len (os.listdir(os.path.join(_folder, str(number))))}\n {tempo}"
                    
                 except FileNotFoundError as e:
@@ -412,10 +462,10 @@ class MyApp(tk.Tk):
                     self.salvar_logs(f"Extração falhou para o xml {number}.\n {e}")
                     pass
         if total > 0 :                
-            self.label_info[ "text" ] = f"Extração concluída para os arquivos {number}.\n Total de arquivos processados: {total}"
+            self.label_info["text"] = f"Extração concluída para o xml {number}.\n Quantidade de arquivos processados: {cont if cont > 0 else len (os.listdir(os.path.join(_folder, str(number))))}\n {tempo}"
         
         self.salvar_logs(
-            f"Extração concluída para os arquivos {number}. Total de arquivos processados: {total}"
+            f"Extração concluída para os arquivos {number}. Total de arquivos processados: {total} {tempo}"
         )
         self.enable_buttons()
         self.button_start["state"] = tk.NORMAL
@@ -433,25 +483,25 @@ class MyApp(tk.Tk):
             for arquivo in arquivos:
                 print(f"Deletando o arquivo {arquivo}")
                 self.label_info["text"] = f"Deletando o arquivo {arquivo}"
-                self.salvar_logs(f"Arquivo {arquivo} deletado!")
+                
                 os.remove(os.path.join(pasta, arquivo))
-                self.label_info["text"] =""
+                self.salvar_logs(f"Arquivo {arquivo} deletado!")
+                # self.label_info["text"] =""
     
     def apagar_output(self):
         is_output = self.check_output()
-        print(
-            f'Deletando pastas em output: {len(is_output[1])} {"pasta" if len(is_output[1]) == 1 else "pastas"}'
-        )
-        self.label_info[
-            "text"
-        ] = f'Deletando pastas em output: {len(is_output[1])} {"pasta" if len(is_output[1]) == 1 else "pastas"}'
+        print( f'Deletando pastas em output: {len(is_output[1])} {"pasta" if len(is_output[1]) == 1 else "pastas"}'  )
+        self.label_info["text" ] = f'Deletando pastas em output: {len(is_output[1])} {"pasta" if len(is_output[1]) == 1 else "pastas"}'
+        
         for pasta in is_output[1]:
             self.run_in_thread(shutil.rmtree(pasta))
-            print(f"pasta {pasta} deletada")
-            self.label_info["text"] = f"pasta {pasta} deletada"
+            print(f"Pasta {pasta} deletada")
+
+        self.label_info["text"] = f"Pasta {pasta} deletada"
         self.disable_buttons()
 
     def start_export(self):
+        tempo_export = time.time()
         self.pb.grid(
             row=5,
             column=0,
@@ -462,6 +512,7 @@ class MyApp(tk.Tk):
         self.pb.start()
         tempo_init = time.time()
         doc_lists = {"1010": [], "1200": [], "2299": [], "5001": [], "5011": []}
+        tempo_final = float(00.00)
         is_output = self.check_output()
         if is_output[0] == False:
             return
@@ -492,18 +543,28 @@ class MyApp(tk.Tk):
             # print( doc_lists.items())
             self.run_in_thread(self.juntar_xmls(doc_type, file_list, pasta))
             tempo_etapa = time.time() - tempo_init
-            print( f"Extração concluída para o xml {doc_type}, quantidade de arquivos processados: {len(file_list)}")
-            self.salvar_logs(f"Extração concluída para o xml {doc_type},\n quantidade de arquivos processados: \n{len(file_list)}. Tempo de execução: {tempo_etapa}")
-            self.label_info["text"] = f"Extração concluída para o xml {doc_type}, \nTempo de execução: {tempo_etapa}"
+            tempo_etapa_horas = tempo_etapa / 3600
+            tempo_etapa_minutos = tempo_etapa / 60
+            tempo_etapa_segundos = tempo_etapa % 60
+            tempo_etapa_format = f"{int(tempo_etapa_minutos)} minutos : {int(tempo_etapa_segundos)} segundos"
 
-            # print(tempo_etapa)
-        print(f"Tempo total de execução: {tempo_etapa}")
-        self.label_info["text"] = f"Extração concluída! Tempo total de execução: {tempo_etapa}"
+            
+            print( f"Exportação concluída para o xml {doc_type}, quantidade de arquivos processados: {len(file_list)}")
+            self.salvar_logs(f"Extração concluída para o xml {doc_type}, quantidade de arquivos processados: {len(file_list)}. Tempo de execução: {tempo_etapa}")
+            self.label_info["text"] = f"Extração concluída para o xml {doc_type}, \nTempo de execução: {tempo_etapa_format}"
+            tempo_final = tempo_final+tempo_etapa
+
+        tempo_final_format = f"{int(tempo_final / 60)} minutos : {int(tempo_final % 60)} segundos"    # print(tempo_etapa)
+        print(f"Tempo total de execução: \n{tempo_final_format}")
+        self.label_info["text"] = f"Exportação concluída para o xml {doc_type}, \n Tempo total de execução:\n {tempo_final_format}"
+        self.relatorios.tempo_export = tempo_final
+        
 
         self.pb.stop()
         self.pb.grid_forget()
 
     def juntar_xmls(self, doc_number, file_list, destino):
+        
         destino = destino.split("/")[1].replace(" ", "_")
         if len(file_list) == 0:
             return
@@ -511,7 +572,7 @@ class MyApp(tk.Tk):
             df_final = pd.concat(
                 [pd.read_excel(arquivo) for arquivo in file_list], ignore_index=True
             )
-            df_final.to_csv(f"resultados_{destino}_{doc_number}.csv", index=False)
+            df_final.to_csv(f"output_{datetime.now().strftime('%d%m%Y%H%M')}_{doc_number}.csv", index=False)
             print(f"Arquivo {doc_number} salvo em {destino}")
             self.salvar_logs(f"Arquivo {doc_number} salvo em {destino}")
 

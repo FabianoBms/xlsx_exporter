@@ -6,8 +6,7 @@ import zipfile
 import locale
 import json
 from tkinter import filedialog
-from formats import formatar_cnpj, formatar_string_para__cpf
-import xmltodict
+from formats import formatar_cnpj
 from lendo_planilhas import extrair_1010
 
 # Configurar a formatação de moeda

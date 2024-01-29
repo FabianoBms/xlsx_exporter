@@ -28,7 +28,8 @@ def extrair_1010(xml_content):
     if inclusao:
         codRubr = inclusao.find("codRubr").text
         ideTabRubr = inclusao.find("ideTabRubr").text
-        iniValid = inclusao.find("iniValid").text
+        iniValid = inclusao.find("iniValid")
+        if iniValid != None: iniValid = iniValid.text 
         dscRubr = inclusao.find("dscRubr")
         if dscRubr != None: dscRubr = dscRubr.text
         else: dscRubr = ""
@@ -58,7 +59,9 @@ def extrair_1010(xml_content):
     elif alteracao:
         codRubr = alteracao.find("codRubr").text
         ideTabRubr = alteracao.find("ideTabRubr").text
-        iniValid = alteracao.find("iniValid").text
+        iniValid = alteracao.find("iniValid")
+        if iniValid != None: iniValid = iniValid.text 
+        else: iniValid = ""
         dscRubr = alteracao.find("dscRubr")
         if dscRubr != None: dscRubr = dscRubr.text
         else: dscRubr = ""
@@ -91,7 +94,9 @@ def extrair_1010(xml_content):
     elif exclusao:
         codRubr = exclusao.find("codRubr").text
         ideTabRubr = exclusao.find("ideTabRubr").text
-        iniValid = exclusao.find("iniValid").text
+        iniValid = exclusao.find("iniValid")
+        if iniValid != None: iniValid = iniValid.text 
+        else: iniValid = ""
         dscRubr = ""
      
         fimValid = exclusao.find("fimValid")
