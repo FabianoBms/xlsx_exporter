@@ -23,7 +23,10 @@ from threading import Thread
 import shutil
 from datetime import datetime
 import pandas as pd
-from setup2 import get_version 
+try:
+    from setup import get_version 
+except:
+    pass    
 
 class Relatorios:
     def __init__(self, *args):
@@ -77,11 +80,6 @@ class Relatorios:
             self.tempo_5001 = tempo
              
 
-
-        
-    
-
-
 class MyApp(tk.Tk):
     def __init__(self, root):
         self.relatorios = Relatorios()
@@ -93,6 +91,7 @@ class MyApp(tk.Tk):
         self.root.resizable(False, False)
         self.root.configure(bg="#001F3F")
         self.output_folder = []
+        self.output_path = os.getcwd() + "/output"
         favicon = open("logo.png", "rb")
         self.root.iconphoto(False, tk.PhotoImage(file="logo.png"))
 
@@ -178,8 +177,7 @@ class MyApp(tk.Tk):
         self.label_info = tk.Label(
             self.frame,
             text="1 - Suba o arquivo zip contendo os XML's✔️\n2 - Clique no botão correspondente ao tipo de evento para fazer a extração✔️\n3 - Clique no botão 'Iniciar exportação'✔️\n4 - Aguarde a exportação ser concluída.",
-            bg="#ebe5e4",
-        )
+            bg="#ebe5e4", font=("Arial", 8) )
 
         self.pb = ttk.Progressbar(self.frame, mode="indeterminate")
 
@@ -203,16 +201,14 @@ class MyApp(tk.Tk):
         # create the file_menu
         file_menu = Menu(menubar, tearoff=0)
 
-        # add menu items to the File menu
 
         file_menu.add_command( label="Importar zip...", command=lambda: self.run_in_thread(self.extract) )
-
+        file_menu.add_separator()
+        file_menu.add_command( label="Definir pasta output",command=lambda: self.run_in_thread(self.definir_pasta_output), )
         file_menu.add_command( label="Abrir pasta output",command=lambda: self.run_in_thread(self.abrir_pasta_output), )
         file_menu.add_separator()
-
         file_menu.add_command(label="Apagar arquivos gerados",command=lambda: self.run_in_thread(self.apagar_arquivos_gerados), )
         file_menu.add_command( label="Apagar output",command=lambda: self.run_in_thread(self.apagar_output),)
-
         file_menu.add_separator()
 
         # add Exit menu item
@@ -272,7 +268,10 @@ class MyApp(tk.Tk):
         messagebox.showinfo("Logs", "Logs limpos com sucesso", parent=self.root)    
     
     def sobre(self):
-        versao = get_version()
+        try:
+            versao = get_version()
+        except:
+            versao = "nao identificado"
         messagebox.showinfo(
             "BMS Consultoria Tributária",
             f"XLSX Exporter\n\nVersão: {versao} \n Conversor de eventos para excel\n Copyright (C) 2024 BMS",
@@ -281,17 +280,24 @@ class MyApp(tk.Tk):
             type="ok",            
         )
     
+
+    def definir_pasta_output(self):
+        self.output_path = filedialog.askdirectory(
+            title="Selecione a pasta de output", parent=self.root
+
+        )
     def abrir_pasta_output(self):
-        if os.path.exists("output"):
-            os.startfile("output")
+        print(self.output_path)
+        if os.path.exists(self.output_path):
+            os.startfile(self.output_path)
         else:
-            os.makedirs("output")
+            os.makedirs(self.output_path)
 
     def check_output(self):
-        if os.path.exists("output"):
+        if os.path.exists(self.output_path):
             output_folders = []
-            for folder in os.listdir("output"):
-                output_folders.append(f"output/{folder}")
+            for folder in os.listdir(self.output_path):
+                output_folders.append(f"{self.output_path}/{folder}")
             if len(output_folders) == 0:
                 return False, []
             return True, output_folders
@@ -361,8 +367,8 @@ class MyApp(tk.Tk):
 
         except Exception as e:
             print(f"Erro ao extrair os arquivos: {e}")
-            self.label_info["text"] = f"Erro ao extrair os arquivos: {e}"
-            self.salvar_logs(f"Erro ao extrair os arquivos: {e}")
+            self.label_info["text"] = f"Erro ao extrair os arquivos:\n {e}"
+            self.salvar_logs(f"Erro ao extrair os arquivos:\n {e}")
             self.pb.stop()
             self.pb.grid_forget()
             return
@@ -379,8 +385,8 @@ class MyApp(tk.Tk):
             t.start()
         except Exception as e:
             print(f"Erro ao iniciar a thread: {e}")
-            self.label_info["text"] = f"Erro ao iniciar a thread: {e}"
-            self.salvar_logs(f"Erro ao iniciar a thread: {e}")
+            self.label_info["text"] = f"Erro ao iniciar a thread:\n {e}"
+            self.salvar_logs(f"Erro ao iniciar a thread:\n {e}")
             return
 
     def extract_number(self, number):
@@ -482,7 +488,7 @@ class MyApp(tk.Tk):
             ]
             for arquivo in arquivos:
                 print(f"Deletando o arquivo {arquivo}")
-                self.label_info["text"] = f"Deletando o arquivo {arquivo}"
+                self.label_info["text"] = f"Deletando o arquivo:\n{arquivo}"
                 
                 os.remove(os.path.join(pasta, arquivo))
                 self.salvar_logs(f"Arquivo {arquivo} deletado!")

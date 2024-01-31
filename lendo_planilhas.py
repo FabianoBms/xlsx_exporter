@@ -42,7 +42,7 @@ def extrair_1010(xml_content):
         if inclusao.find("fimValid") != None: fimValid = inclusao.find("fimValid").text     
             
         tabela_inclusao = {
-            "tipo": 0,
+            "tipo": "inclusao",
             "codRubr": codRubr,
             "ideTabRubr": ideTabRubr,
             "iniValid": iniValid,
@@ -72,12 +72,12 @@ def extrair_1010(xml_content):
         codIncFGTS = alteracao.find("codIncFGTS").text
 
         if alteracao.find("fimValid") != None: fimValid = alteracao.find("fimValid").text
-        tipo = 1
+        tipo ='alteracao'
         
         fimValid = alteracao.find("fimValid")
         if fimValid != None: fimValid = fimValid.text
         tabela_alteracao = {
-            "tipo": tipo,
+            "tipo": 'alteracao',
             "codRubr": codRubr,
             "ideTabRubr": ideTabRubr,
             "iniValid": iniValid,
@@ -102,7 +102,7 @@ def extrair_1010(xml_content):
         fimValid = exclusao.find("fimValid")
         if fimValid != None: fimValid = fimValid.text
         tabela_exclusao = {
-            "tipo": 2,
+            "tipo": "exclusao",
             "codRubr": codRubr,
             "ideTabRubr": ideTabRubr,
             "iniValid": iniValid,

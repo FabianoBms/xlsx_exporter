@@ -6,3 +6,5 @@ pdf_env
 output
 __pycache__
 logs.txt
+build
+
