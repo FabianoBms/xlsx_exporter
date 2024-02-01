@@ -43,6 +43,7 @@ def json_to_dataframe(json_content):
     df_final = pd.concat([df_geral_repeated, df_dmDev], axis=1)
     # Remover a coluna 'DemonstrativoTrabalhador'
     #df_final = df_final.drop(['DemonstrativoTrabalhador'], axis=1)
+    df_final = df_final.drop(columns=['InfoEmpresa'])
 
     return df_final
 
@@ -76,6 +77,7 @@ if __name__ == '__main__':
     
     # Concatenar todos os DataFrames em um único DataFrame
     df_final = pd.concat(dfs, ignore_index=True)
+    
 
     # Salvar DataFrame em um arquivo Excel
     df_final.to_csv(os.path.join('resultado_5011.xlsx'), index=False)

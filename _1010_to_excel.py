@@ -18,24 +18,23 @@ def converter_para_moeda(valor):
     except ValueError:
         return valor
 
-
-
 def json_to_dataframe(json_content):
     data = json.loads(json_content)
 
     # DataFrame para as informações gerais
     df_geral = pd.DataFrame([data])
 
-   
-
     return df_geral
 
 # Função para processar um arquivo XML e retornar um DataFrame
 def processar_xml(xml_path):
+
     with open(xml_path, 'r', encoding='utf-8') as file:
         xml_content = file.read()
+
     json_content = extrair_1010(xml_content)
     df = json_to_dataframe(json_content)
+
     return df
 
 if __name__ == '__main__':
@@ -47,7 +46,7 @@ if __name__ == '__main__':
     
     # Lista para armazenar DataFrames individuais
     dfs = []
-    # Iterar sobre os arquivos XML na pasta
+
     # Iterate over the files in the '1010' directory
     for arquivo_xml in os.listdir('1010'):
         # Process each XML file

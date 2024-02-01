@@ -23,10 +23,12 @@ from threading import Thread
 import shutil
 from datetime import datetime
 import pandas as pd
+
 try:
     from setup import get_version 
 except:
     pass    
+
 
 class Relatorios:
     def __init__(self, *args):
@@ -81,6 +83,7 @@ class Relatorios:
              
 
 class MyApp(tk.Tk):
+
     def __init__(self, root):
         self.relatorios = Relatorios()
         self.root = root
@@ -88,8 +91,9 @@ class MyApp(tk.Tk):
         self.root.title("BMS Projetos - Xlsx Exporter")
         self.root.geometry("750x650")
         self.root.minsize(750, 650)
-        self.root.resizable(False, False)
+        # self.root.resizable(False, False)
         self.root.configure(bg="#001F3F")
+        self.exportados = []
         self.output_folder = []
         self.output_path = os.getcwd() + "/output"
         favicon = open("logo.png", "rb")
@@ -101,8 +105,19 @@ class MyApp(tk.Tk):
         self.logo_image = ImageTk.PhotoImage(logo_image)
 
         self.create_ui()
+    
+    def handle_key_event(self, event):
+        tecla_pressionada = event.keysym 
+        ctrl = event.state & 4
+        shift = event.state & 1
+        alt = event.state & 8
 
+        if tecla_pressionada == "m" and ctrl:
+            print(f'{tecla_pressionada}, {ctrl}')
+            
     def create_ui(self):
+
+        self.root.bind('<Key>', self.handle_key_event)
         # Adicionar a imagem do logotipo ao rótulo
         self.logo_label = tk.Label(
             self.root,
@@ -202,13 +217,17 @@ class MyApp(tk.Tk):
         file_menu = Menu(menubar, tearoff=0)
 
 
-        file_menu.add_command( label="Importar zip...", command=lambda: self.run_in_thread(self.extract) )
+        file_menu.add_command( label="Importar zip...", command=lambda: self.run_in_thread(self.extract),  )
         file_menu.add_separator()
-        file_menu.add_command( label="Definir pasta output",command=lambda: self.run_in_thread(self.definir_pasta_output), )
+        # file_menu.add_command( label="Definir pasta output",command=lambda: self.run_in_thread(self.definir_pasta_output), )
         file_menu.add_command( label="Abrir pasta output",command=lambda: self.run_in_thread(self.abrir_pasta_output), )
         file_menu.add_separator()
         file_menu.add_command(label="Apagar arquivos gerados",command=lambda: self.run_in_thread(self.apagar_arquivos_gerados), )
         file_menu.add_command( label="Apagar output",command=lambda: self.run_in_thread(self.apagar_output),)
+        
+        file_menu.add_separator()
+       
+        file_menu.add_command(label="Mover exportados", command=lambda:self.run_in_thread(self.mover_exportados))
         file_menu.add_separator()
 
         # add Exit menu item
@@ -216,6 +235,7 @@ class MyApp(tk.Tk):
 
         # add the File menu to the menubar
         menubar.add_cascade(label="Menu", menu=file_menu)
+
         # create the Help menu
         help_menu = Menu(menubar, tearoff=0)
 
@@ -249,7 +269,8 @@ class MyApp(tk.Tk):
                 self.enable_buttons()
                 self.button_start["state"] = tk.NORMAL
                 quebra = "\n"
-                self.label_info["text"] = f"Pastas recuperadas: {'--> '.join(str(self.output_folder[x]+quebra) for x in range(len(self.output_folder)))}"
+                pasta = '--> '.join(str(self.output_folder[x]+quebra) for x in range(len(self.output_folder)))
+                self.label_info["text"] = f"Pastas recuperadas: {pasta}"
             
             self.pb.stop()
             self.pb.grid_forget()
@@ -262,6 +283,34 @@ class MyApp(tk.Tk):
         # Abrir o arquivo de logs.txt
         os.startfile("logs.txt")
 
+
+    def mover_exportados(self):
+        self.label_info["text"] = " "
+        
+        if len(self.exportados) == 0:
+            self.check_output()
+        # Abrir caixa de diálogo para selecionar o diretório de destino
+        destino = filedialog.askdirectory(title="Selecione o diretório de destino")
+
+        if destino:
+            # Mover cada arquivo exportado para o diretório de destino
+            for arquivo in self.exportados[:]:  # Utilizamos [:] para criar uma cópia da lista
+                try:
+                    nome_arquivo = os.path.basename(arquivo)
+                    # Construir o caminho de destino
+                    destino_arquivo = os.path.join(destino, nome_arquivo)
+                    shutil.move(arquivo, destino_arquivo)
+                    print(f"Arquivo {nome_arquivo} movido para {destino}")
+                    self.salvar_logs(f"Arquivo {nome_arquivo} movido para {destino}")
+                    self.label_info["text"] = self.label_info["text"]+ '\n' + f"Arquivo {nome_arquivo} movido para {destino}"
+
+                    self.exportados.remove(arquivo)
+                except Exception as e:
+                    print(f"Erro ao mover arquivo {nome_arquivo}: {e}")
+                    self.salvar_logs(f"Erro ao mover arquivo {nome_arquivo}: {e}")
+        self.pb.stop()
+        self.pb.grid_forget() 
+                  
     def limpar_logs(self):
         with open("logs.txt", "w", encoding="utf-8") as file:
             file.write("")
@@ -280,12 +329,12 @@ class MyApp(tk.Tk):
             type="ok",            
         )
     
-
     def definir_pasta_output(self):
         self.output_path = filedialog.askdirectory(
             title="Selecione a pasta de output", parent=self.root
 
         )
+    
     def abrir_pasta_output(self):
         print(self.output_path)
         if os.path.exists(self.output_path):
@@ -294,13 +343,27 @@ class MyApp(tk.Tk):
             os.makedirs(self.output_path)
 
     def check_output(self):
+        print('checking output...')
+
         if os.path.exists(self.output_path):
             output_folders = []
+
             for folder in os.listdir(self.output_path):
-                output_folders.append(f"{self.output_path}/{folder}")
+                print(folder)
+
+                if not folder.endswith('.csv'):
+                  print('aqui--> ', folder)
+                  output_folders.append(f"{self.output_path}/{folder}")
+                elif folder.endswith('.csv'):
+                    self.exportados.append(f"{self.output_path}/{folder}")
+            print('exportados: ', self.exportados)
+
+
             if len(output_folders) == 0:
-                return False, []
+                return False, []   
+                     
             return True, output_folders
+        
         else:
             return False, []
 
@@ -403,76 +466,87 @@ class MyApp(tk.Tk):
         total = 0
         tempo = 0
         for _folder in self.output_folder:
-            if f"_{number}.xlsx" in os.listdir(os.path.join(_folder)):                
-                print(f"Arquivo {number}.xlsx encontrado na pasta 'output'")
-                self.label_info["text"] = f"Arquivo {number}.xlsx já existe na pasta 'output'"
+            try:
+                if os.path.isdir(_folder):
+                    if f"_{number}.xlsx" in os.listdir(os.path.join(_folder)):                
+                        print(f"Arquivo {number}.xlsx encontrado na pasta 'output'")
+                        self.label_info["text"] = f"Arquivo {number}.xlsx já existe na pasta 'output'"
+                
 
-            else:
-                try:
-                    iter_number = (
-                        arquivo_xml
-                        for arquivo_xml in os.listdir(
-                            os.path.join(_folder, str(number))
-                        )
-                        if arquivo_xml.endswith(f"{str(number)}.xml")
-                    )
-                    print(f"Extraindo para o xml {number} o arquivo {iter_number}")
-                    dfs = []
-                    cont = 0
+                    else:
+                        try:
+                            iter_number = (
+                                arquivo_xml
+                                for arquivo_xml in os.listdir(
+                                    os.path.join(_folder, str(number))
+                                )
+                                if arquivo_xml.endswith(f"{str(number)}.xml")
+                            )
+                            print(f"Extraindo para o xml {number} o arquivo {iter_number}")
+                            dfs = []
+                            cont = 0
 
-                    for val in iter_number:
-                        cont += 1
-                        # print(f"Extraindo para o número {number} o arquivo {val}")
-                        self.label_info[
-                            "text"
-                        ] = f"Extraindo para o xml {number} o arquivo \n{val}"
-                        caminho = os.path.join(_folder, str(number), val)
-                        # df = threading.Thread(target=self.dummy_function, args=(caminho,)).start()
-                        if number == 1200:
-                            df = processar_xml_1200(caminho)
-                        elif number == 1010:
-                            df = processar_xml_1010(caminho)
-                        elif number == 2299:
-                            df = processar_xml_2299(caminho)
-                        elif number == 5001:
-                            df = processar_xml_5001(caminho)
-                        elif number == 5011:
-                            df = processar_xml_5011(caminho)
+                            for val in iter_number:
+                                cont += 1
+                                # print(f"Extraindo para o número {number} o arquivo {val}")
+                                self.label_info[
+                                    "text"
+                                ] = f"Extraindo para o xml {number} o arquivo \n{val}"
+                                caminho = os.path.join(_folder, str(number), val)
+                                # df = threading.Thread(target=self.dummy_function, args=(caminho,)).start()
+                                if number == 1200:
+                                    df = processar_xml_1200(caminho)
+                                elif number == 1010:
+                                    df = processar_xml_1010(caminho)
+                                elif number == 2299:
+                                    df = processar_xml_2299(caminho)
+                                elif number == 5001:
+                                    df = processar_xml_5001(caminho)
+                                elif number == 5011:
+                                    df = processar_xml_5011(caminho)
 
-                        dfs.append(df)
+                                dfs.append(df)
 
-                    # Concatenar todos os DataFrames em um único DataFrame
-                    df_final = pd.concat(dfs, ignore_index=True)
-                    self.dataframes.append(df_final)
+                            # Concatenar todos os DataFrames em um único DataFrame
+                            df_final = pd.concat(dfs, ignore_index=True)
+                            self.dataframes.append(df_final)
 
-                    df_final.to_excel(
-                        os.path.join(_folder, f"_{number}.xlsx"), index=False
-                    )
-                    
-                    total = total + cont
-                    # Calcula o tempo de execução em minutos
-                    tempo_minutos = (time.time() - tempo_init) / 60
+                            df_final.to_excel(
+                                os.path.join(_folder, f"_{number}.xlsx"), index=False
+                            )
+                            
+                            total = total + cont
+                            # Calcula o tempo de execução em minutos
+                            tempo_minutos = (time.time() - tempo_init) / 60
 
-                    # Calcula os segundos restantes
-                    tempo_segundos = (time.time() - tempo_init) % 60
+                            # Calcula os segundos restantes
+                            tempo_segundos = (time.time() - tempo_init) % 60
 
-                    # Formata a mensagem de tempo de execução
-                    tempo = f"Tempo de execução: {int(tempo_minutos)} minutos e {tempo_segundos:.2f} segundos"
-                    self.relatorios.add_tempo(number, tempo)
+                            # Formata a mensagem de tempo de execução
+                            tempo = f"Tempo de execução: {int(tempo_minutos)} minutos e {tempo_segundos:.2f} segundos"
+                            self.relatorios.add_tempo(number, tempo)
 
-                    self.label_info["text"] = f"Extração concluída para o xml {number}.\n Quantidade de arquivos processados: {cont if cont > 0 else len (os.listdir(os.path.join(_folder, str(number))))}\n {tempo}"
-                   
-                except FileNotFoundError as e:
-                    self.label_info["text"] = f"Extração falhou para o xml {number}.\n {e}"
-                    print(f"Extração falhou para o xml {number}.\n {e}")
-                    self.salvar_logs(f"Extração falhou para o xml {number}.\n {e}")
-                    pass
+                            self.label_info["text"] = f"Extração concluída para o xml {number}.\n Quantidade de arquivos processados: {cont if cont > 0 else len (os.listdir(os.path.join(_folder, str(number))))}\n {tempo}"
+                        
+                        except FileNotFoundError as e:
+                            self.label_info["text"] = f"Extração falhou para o xml {number}.\n {e}"
+                            print(f"Extração falhou para o xml {number}.\n {e}")
+                            self.salvar_logs(f"Extração falhou para o xml {number}.\n {e}")
+                            self.pb.stop()
+                            self.pb.grid_forget()
+                            # self.enable_buttons_buttons()
+                            continue
+            except Exception as e:
+                self.label_info['text'] = str(e)
+                self.pb.stop()
+                self.pb.grid_forget()
+                # self.enable_buttons_buttons()
+                return
+
         if total > 0 :                
             self.label_info["text"] = f"Extração concluída para o xml {number}.\n Quantidade de arquivos processados: {cont if cont > 0 else len (os.listdir(os.path.join(_folder, str(number))))}\n {tempo}"
         
-        self.salvar_logs(
-            f"Extração concluída para os arquivos {number}. Total de arquivos processados: {total} {tempo}"
-        )
+        self.salvar_logs(f"Extração concluída para os arquivos {number}. Total de arquivos processados: {total} {tempo}")
         self.enable_buttons()
         self.button_start["state"] = tk.NORMAL
         self.pb.stop()
@@ -481,30 +555,44 @@ class MyApp(tk.Tk):
         # print("Extração concluída")
 
     def apagar_arquivos_gerados(self):
+        self.label_info["text"] = "Deletando arquivos gerados..."
         output_folders = self.output_folder
-        for pasta in output_folders:
-            arquivos = [
-                arquivo for arquivo in os.listdir(pasta) if arquivo.endswith(".xlsx")
-            ]
-            for arquivo in arquivos:
-                print(f"Deletando o arquivo {arquivo}")
-                self.label_info["text"] = f"Deletando o arquivo:\n{arquivo}"
-                
-                os.remove(os.path.join(pasta, arquivo))
-                self.salvar_logs(f"Arquivo {arquivo} deletado!")
-                # self.label_info["text"] =""
-    
-    def apagar_output(self):
-        is_output = self.check_output()
-        print( f'Deletando pastas em output: {len(is_output[1])} {"pasta" if len(is_output[1]) == 1 else "pastas"}'  )
-        self.label_info["text" ] = f'Deletando pastas em output: {len(is_output[1])} {"pasta" if len(is_output[1]) == 1 else "pastas"}'
-        
-        for pasta in is_output[1]:
-            self.run_in_thread(shutil.rmtree(pasta))
-            print(f"Pasta {pasta} deletada")
 
-        self.label_info["text"] = f"Pasta {pasta} deletada"
-        self.disable_buttons()
+        if len(output_folders) == 0:
+            self.label_info["text"] = "Não ha arquivos a serem deletados!"
+
+        for pasta in output_folders:
+
+            if os.path.isdir(pasta):
+                arquivos = [arquivo for arquivo in os.listdir(pasta) if arquivo.endswith(".xlsx")]
+                print(arquivos)
+
+                if len(arquivos) == 0:
+                    self.label_info["text"] = "Não ha arquivos a serem deletados!"
+                    return
+                
+                for arquivo in arquivos:
+                    print(f"Deletando o arquivo {arquivo}")
+                    self.label_info["text"] = self.label_info["text"] + '\n' + f"Deletando o arquivo:\n{arquivo}"
+                    
+                    os.remove(os.path.join(pasta, arquivo))
+                    self.salvar_logs(f"Arquivo {arquivo} deletado!")
+        
+    def apagar_output(self):
+        try:
+            is_output = self.check_output()
+            print( f'Deletando pastas em output: {len(is_output[1])} {"pasta" if len(is_output[1]) == 1 else "pastas"}'  )
+            self.label_info["text" ] = f'Deletando pastas em output: {len(is_output[1])} {"pasta" if len(is_output[1]) == 1 else "pastas"}'
+            
+            for pasta in is_output[1]:
+                self.run_in_thread(shutil.rmtree(pasta))
+                print(f"Pasta {pasta} deletada")
+
+            self.label_info["text"] = f"Pasta {pasta} deletada"
+            self.disable_buttons()
+        except UnboundLocalError as e:
+            print(f"Erro: {e.with_traceback}")
+            self.label_info["text"] = "Não ha arquivos a serem deletados!"
 
     def start_export(self):
         tempo_export = time.time()
@@ -527,23 +615,24 @@ class MyApp(tk.Tk):
             print(self.output_folder)
 
         for pasta in self.output_folder:
-            arquivos = [arquivo for arquivo in os.listdir(pasta)]
-            for arquivo in arquivos:
-                try:
-                    doc_number = None
-                    if arquivo.endswith(doc_number := "1010.xlsx"):
-                        doc_lists["1010"].append(os.path.join(pasta, arquivo))
-                    elif arquivo.endswith(doc_number := "1200.xlsx"):
-                        doc_lists["1200"].append(os.path.join(pasta, arquivo))
-                    elif arquivo.endswith(doc_number := "2299.xlsx"):
-                        doc_lists["2299"].append(os.path.join(pasta, arquivo))
-                    elif arquivo.endswith(doc_number := "5001.xlsx"):
-                        doc_lists["5001"].append(os.path.join(pasta, arquivo))
-                    elif arquivo.endswith(doc_number := "5011.xlsx"):
-                        doc_lists["5011"].append(os.path.join(pasta, arquivo))
-                except Exception as e:
-                    print(f"Erro ao processar arquivo {arquivo}: {e}")
-                    self.salvar_logs(f"Erro ao processar arquivo {arquivo}: {e}")
+            if os.path.isdir(pasta):                
+                arquivos = [arquivo for arquivo in os.listdir(pasta) ]
+                for arquivo in arquivos:
+                    try:
+                        doc_number = None
+                        if arquivo.endswith(doc_number := "1010.xlsx"):
+                            doc_lists["1010"].append(os.path.join(pasta, arquivo))
+                        elif arquivo.endswith(doc_number := "1200.xlsx"):
+                            doc_lists["1200"].append(os.path.join(pasta, arquivo))
+                        elif arquivo.endswith(doc_number := "2299.xlsx"):
+                            doc_lists["2299"].append(os.path.join(pasta, arquivo))
+                        elif arquivo.endswith(doc_number := "5001.xlsx"):
+                            doc_lists["5001"].append(os.path.join(pasta, arquivo))
+                        elif arquivo.endswith(doc_number := "5011.xlsx"):
+                            doc_lists["5011"].append(os.path.join(pasta, arquivo))
+                    except Exception as e:
+                        print(f"Erro ao processar arquivo {arquivo}: {e}")
+                        self.salvar_logs(f"Erro ao processar arquivo {arquivo}: {e}")
 
         for doc_type, file_list in doc_lists.items():
             # print( doc_lists.items())
@@ -553,7 +642,6 @@ class MyApp(tk.Tk):
             tempo_etapa_minutos = tempo_etapa / 60
             tempo_etapa_segundos = tempo_etapa % 60
             tempo_etapa_format = f"{int(tempo_etapa_minutos)} minutos : {int(tempo_etapa_segundos)} segundos"
-
             
             print( f"Exportação concluída para o xml {doc_type}, quantidade de arquivos processados: {len(file_list)}")
             self.salvar_logs(f"Extração concluída para o xml {doc_type}, quantidade de arquivos processados: {len(file_list)}. Tempo de execução: {tempo_etapa}")
@@ -564,7 +652,6 @@ class MyApp(tk.Tk):
         print(f"Tempo total de execução: \n{tempo_final_format}")
         self.label_info["text"] = f"Exportação concluída para o xml {doc_type}, \n Tempo total de execução:\n {tempo_final_format}"
         self.relatorios.tempo_export = tempo_final
-        
 
         self.pb.stop()
         self.pb.grid_forget()
@@ -578,7 +665,8 @@ class MyApp(tk.Tk):
             df_final = pd.concat(
                 [pd.read_excel(arquivo) for arquivo in file_list], ignore_index=True
             )
-            df_final.to_csv(f"output_{datetime.now().strftime('%d%m%Y%H%M')}_{doc_number}.csv", index=False)
+            file = f"output_{datetime.now().strftime('%d%m%Y%H%M')}_{doc_number}.csv"
+            df_final.to_csv(os.path.join( "output",file), index=False)
             print(f"Arquivo {doc_number} salvo em {destino}")
             self.salvar_logs(f"Arquivo {doc_number} salvo em {destino}")
 
@@ -591,6 +679,7 @@ class MyApp(tk.Tk):
         finally:
             print(f"Extração concluída para o xml {doc_number}.")
             self.label_info["text"] = f"Extração concluída para o xml {doc_number}."
+
 
 
 # Iniciar a aplicação
