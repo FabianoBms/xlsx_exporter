@@ -13,7 +13,8 @@ if __name__ == "__main__":
     action = str(input("Qual ação (major, minor, patch)? "))
     if action not in ["major", "minor", "patch"]:
         action = "patch"    
-        
+
+    print(action)    
     # Determinar ação de versionamento (maior, menor, patch)
     # Supondo que você tenha uma variável chamada "action" que determina a ação
     if action == "major":
@@ -32,7 +33,8 @@ if __name__ == "__main__":
 
     # Construir o número de versão
     version = f"{version_data['major']}.{version_data['minor']}.{version_data['patch']}"
-
+    
+    print("Versão:", version)
     # Restante do seu código setup.py
     company_name = "BMS Consultoria Tributária"
     product_name = "XLSX Exporter"

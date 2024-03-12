@@ -91,6 +91,7 @@ class MyApp(tk.Tk):
         self.root.title("BMS Projetos - Xlsx Exporter")
         self.root.geometry("750x650")
         self.root.minsize(750, 650)
+        self.method  = tk.StringVar()
         # self.root.resizable(False, False)
         self.root.configure(bg="#001F3F")
         self.exportados = []
@@ -119,15 +120,17 @@ class MyApp(tk.Tk):
 
         self.root.bind('<Key>', self.handle_key_event)
         # Adicionar a imagem do logotipo ao rótulo
+
         self.logo_label = tk.Label(
             self.root,
             image=self.logo_image,
             bg="#001F3F",
         )
-        self.logo_label.pack(pady=10, padx=20, side=tk.TOP)
+        self.logo_label.pack(side=tk.TOP)
+        self.subtitle = tk.Label( self.root, text="Conversor de eventos para excel versão 2", bg="#001F3F", fg = "#ebe5e4", font=("Arial", 12)).pack(side=tk.BOTTOM)
 
         # Criar um frame centralizado
-        self.frame = tk.Frame(self.root, width=650, height=440, bg="#ebe5e4")
+        self.frame = tk.Frame(self.root, width=800, height=440, bg="#ebe5e4")
         self.frame.place(relx=0.5, rely=0.6, anchor=tk.CENTER)
         self.frame.bind('<Double-1>',self.clear_label)
    
@@ -135,12 +138,39 @@ class MyApp(tk.Tk):
         # Criar os componentes dentro do frame
         # self.label = tk.Label(self.frame, text="BMS Projetos", bg='#ebe5e4')
         self.logo = tk.Label(
-            self.frame, text="Xlsx Exporter", bg="#ebe5e4", font=("Arial", 20)
+            self.root, text="Xlsx Exporter", bg="#001f3f", fg="#ebe5e4", font=("Arial", 20)
         )
 
-        self.upload_button = tk.Button(
+        self.label_select = tk.Label(
+            self.frame,
+            text="Escolha o tipo de upload dos arquivos:",
+            bg="#ebe5e4",
+            font=("Arial", 12),
+
+        )
+
+        self.label_select.grid(row=0, column=0,columnspan=4, pady=5, padx=5)
+
+        self.upload_select = ttk.Combobox(
+            self.frame,
+            textvariable=self.method,
+            width=30,
+        )
+
+        self.upload_select["values"] =[ "Upload dos Arquivos ZIP", "Upload xml manual"]
+
+        self.upload_select.bind('<<ComboboxSelected>>', self.select_method)
+
+        self.upload_zip_button = tk.Button(
             self.frame,
             text="Upload dos Arquivos ZIP",
+            command=lambda: self.run_in_thread(self.extract),
+            width=20,
+        )
+
+        self.upload_manual_button = tk.Button(
+            self.frame,
+            text="Upload manual",
             command=lambda: self.run_in_thread(self.extract),
             width=20,
         )
@@ -198,8 +228,15 @@ class MyApp(tk.Tk):
 
         # Posicionar os componentes usando o grid geometry
         # self.label.grid(row=0, column=0, columnspan=2, padx=10, pady=15, sticky="news")
-        self.logo.grid(row=0, column=1, columnspan=3, padx=180,pady=20, sticky="news")
-        self.upload_button.grid(row=1, column=0, columnspan=4, padx=10, pady=15)
+        # self.logo.grid(row=0, column=1, columnspan=3, padx=180,pady=20, sticky="news")
+        self.logo.pack(anchor="center")
+        self.upload_select.grid(row=1, column=0, columnspan=4, padx=10, pady=15)
+
+        ####################################################################################
+        
+        #self.upload_manual_button.grid(row=1, column=3, columnspan=2, padx=10, pady=15)
+
+        ####################################################################################
 
         self.button_1010.grid(row=2, column=1, pady=15, padx=(10))
         self.button_1200.grid(row=2, column=3, pady=15, padx=(0, 10))
@@ -283,14 +320,123 @@ class MyApp(tk.Tk):
         # Abrir o arquivo de logs.txt
         os.startfile("logs.txt")
 
+    
+    def select_method(self, event):
+        select = self.method.get().split(" ")[-1].lower()
+        print(select)
+        if select == "zip":
+            self.run_in_thread(self.extract)
+        elif select == "manual":
+            self.run_in_thread(self.manual_method)
+
+    def manual_method(self):
+        nova_janela = tk.Toplevel(self.root)
+        nova_janela.title("Escolha uma opção")
+        nova_janela.geometry("300x150")
+        
+        # Variável para armazenar a opção selecionada
+        opcao_selecionada = tk.StringVar()
+
+        def importar_manual():
+            ...
+
+        # Variáveis para armazenar as escolhas do usuário
+        opcao1_var = tk.BooleanVar()
+        opcao2_var = tk.BooleanVar()
+        opcao3_var = tk.BooleanVar()
+        opcao4_var = tk.BooleanVar()
+        opcao5_var = tk.BooleanVar()
+        
+        # Função para mostrar as escolhas do usuário
+        def mostrar_escolhas():
+            escolhas = []
+            if opcao1_var.get():
+                escolhas.append("evento 1010")
+            if opcao2_var.get():
+                escolhas.append("evento 1200")
+            if opcao3_var.get():
+                escolhas.append("evento 2299")
+            if opcao4_var.get():
+                escolhas.append("evento 5001")
+            if opcao5_var.get():
+                escolhas.append("evento 5011")
+            
+            if escolhas:
+                evento = (escolhas[0].split(' ')[-1])
+                nova_janela.destroy()
+                self.escolher_manual(evento)
+            else:
+                tk.messagebox.showinfo("Escolhas", "Você não selecionou nenhuma opção.")
+        
+        # Criar os check buttons
+        check_button1 = ttk.Checkbutton(nova_janela, text="evento 1010", variable=opcao1_var)
+        check_button1.pack(padx=5, pady=5)
+        
+        check_button2 = ttk.Checkbutton(nova_janela, text="evento 1200", variable=opcao2_var)
+        check_button2.pack(padx=5)
+        
+        check_button3 = ttk.Checkbutton(nova_janela, text="evento 2299", variable=opcao3_var)
+        check_button3.pack(padx=5)
+        
+        check_button4 = ttk.Checkbutton(nova_janela, text="evento 5001", variable=opcao4_var)
+        check_button4.pack(padx=5)
+        
+        check_button4 = ttk.Checkbutton(nova_janela, text="evento 5011", variable=opcao5_var)
+        check_button4.pack(padx=5)
+        
+        # Botão para confirmar escolhas
+        botao_confirmar = ttk.Button(nova_janela, text="Confirmar", command=mostrar_escolhas)
+        botao_confirmar.pack( pady=5 )
+                
+    def escolher_manual(self, evento):
+        print(evento)
+        # Função para selecionar arquivos XML e copiá-los para uma pasta com o nome do parâmetro
+        
+        # Criar uma janela para seleção de arquivos
+        # root = tk.Tk()
+        # root.withdraw()  # Esconder a janela principal
+        
+        # Selecionar múltiplos arquivos XML
+        arquivos_selecionados = filedialog.askopenfilenames(title="Selecione os arquivos XML", filetypes=(("Arquivos XML", "*.xml"),))
+        
+        # Verificar se algum arquivo foi selecionado
+        if not arquivos_selecionados:
+            print("Nenhum arquivo selecionado.")
+            return False
+        
+        # Criar pasta de saída com o nome do parâmetro
+        pasta_saida = os.path.join("output/manual", evento)
+        os.makedirs(pasta_saida, exist_ok=True)
+        
+        # Renomear e copiar os arquivos para a pasta de saída
+        try:
+            for arquivo in arquivos_selecionados:
+                nome_arquivo = os.path.basename(arquivo)
+                nome_arquivo_sem_extensao, extensao = os.path.splitext(nome_arquivo)
+                novo_nome_arquivo = f"{nome_arquivo_sem_extensao}_{evento}{extensao}"
+                caminho_saida = os.path.join(pasta_saida, novo_nome_arquivo)
+                shutil.copyfile(arquivo, caminho_saida)
+            print("Arquivos copiados com sucesso para:", pasta_saida)
+            self.output_folder = self.check_output()[1]
+            self.enable_buttons(evento)
+            return True
+        except Exception as e:
+            print("Ocorreu um erro ao copiar os arquivos:", e)
+            return False
+
+
 
     def mover_exportados(self):
+        destino = False
         self.label_info["text"] = " "
         
         if len(self.exportados) == 0:
             self.check_output()
-        # Abrir caixa de diálogo para selecionar o diretório de destino
-        destino = filedialog.askdirectory(title="Selecione o diretório de destino")
+
+        if len(self.exportados) > 0:
+            self.label_info["text"] = "Nenhum arquivo exportado"          
+            # Abrir caixa de diálogo para selecionar o diretório de destino
+            destino = filedialog.askdirectory(title="Selecione o diretório de destino")
 
         if destino:
             # Mover cada arquivo exportado para o diretório de destino
@@ -308,6 +454,10 @@ class MyApp(tk.Tk):
                 except Exception as e:
                     print(f"Erro ao mover arquivo {nome_arquivo}: {e}")
                     self.salvar_logs(f"Erro ao mover arquivo {nome_arquivo}: {e}")
+        else:
+            print("Nenhum diretório de destino selecionado")
+            self.label_info["text"] = "Nenhum diretório de destino selecionado"
+
         self.pb.stop()
         self.pb.grid_forget() 
                   
@@ -367,14 +517,26 @@ class MyApp(tk.Tk):
         else:
             return False, []
 
-    def enable_buttons(self):
+    def enable_buttons(self, evento = None):
         # Habilitar os botões após o upload dos arquivos
-        self.button_1010["state"] = tk.NORMAL
-        self.button_1200["state"] = tk.NORMAL
-        self.button_2299["state"] = tk.NORMAL
-        self.button_5001["state"] = tk.NORMAL
-        self.button_5011["state"] = tk.NORMAL
-        #self.button_start["state"] = tk.NORMAL
+        if evento is not None:
+            if str(evento) == str('1010'):
+                 self.button_1010["state"] = tk.NORMAL
+            elif evento == '1200':
+                self.button_1200["state"] = tk.NORMAL
+            elif evento == '2299':
+                self.button_2299["state"] = tk.NORMAL
+            elif evento == '5001':
+                self.button_5001["state"] = tk.NORMAL
+            elif evento == '5011':
+                self.button_5011["state"] = tk.NORMAL
+        else:           
+            self.button_1010["state"] = tk.NORMAL
+            self.button_1200["state"] = tk.NORMAL
+            self.button_2299["state"] = tk.NORMAL
+            self.button_5001["state"] = tk.NORMAL
+            self.button_5011["state"] = tk.NORMAL
+            #self.button_start["state"] = tk.NORMAL
 
     def disable_buttons(self):
         # Habilitar os botões após o upload dos arquivos
